@@ -1,4 +1,4 @@
-import RNFS from "react-native-fs"
+import * as FileSystem from "expo-file-system"
 import { apiService } from "./apiService"
 import { fileService } from "./fileService"
 import { useAppStore } from "../store/appStore"
@@ -31,8 +31,8 @@ class UploadService {
   ): Promise<UploadResult> {
     try {
       // Check if file exists
-      const fileExists = await RNFS.exists(audioUri)
-      if (!fileExists) {
+      const fileInfoCheck = await FileSystem.getInfoAsync(audioUri)
+      if (!fileInfoCheck.exists) {
         throw new Error("音频文件不存在")
       }
 
