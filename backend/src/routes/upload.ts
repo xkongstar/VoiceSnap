@@ -38,7 +38,7 @@ router.post("/audio", authenticateToken, upload.single("audio"), async (req: Aut
 
     // Upload to Vercel Blob
     try {
-      const blob = await put(finalFilename, audioFile.buffer, {
+      const blob = await put(finalFilename, audioFile.buffer as any, {
         access: "public",
         token: process.env.BLOB_READ_WRITE_TOKEN,
       })
@@ -74,7 +74,7 @@ router.post("/metadata", authenticateToken, async (req: AuthRequest, res, next) 
 
     // Upload to Vercel Blob
     try {
-      const blob = await put(filename, metadataBuffer, {
+      const blob = await put(filename, metadataBuffer as any, {
         access: "public",
         token: process.env.BLOB_READ_WRITE_TOKEN,
         contentType: "application/json",

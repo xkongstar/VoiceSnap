@@ -45,7 +45,7 @@ router.get("/dashboard", authenticateToken, async (req: AuthRequest, res, next) 
     // Add completion status to tasks
     const tasksWithStatus = tasks.map((task) => ({
       ...task.toObject(),
-      completed: completedTaskIds.has(task._id.toString()),
+      completed: completedTaskIds.has((task._id as any).toString()),
     }))
 
     // Separate completed and pending tasks

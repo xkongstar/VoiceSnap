@@ -33,7 +33,7 @@ router.get("/pending", authenticateToken, async (req: AuthRequest, res, next) =>
     const completedTaskIds = new Set(userRecordings.map((r) => r.task_id.toString()))
 
     // Filter out completed tasks
-    const pendingTasks = allTasks.filter((task) => !completedTaskIds.has(task._id.toString()))
+    const pendingTasks = allTasks.filter((task) => !completedTaskIds.has((task._id as any).toString()))
 
     res.json({
       tasks: pendingTasks,

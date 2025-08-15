@@ -1,5 +1,5 @@
 import express from "express"
-import jwt from "jsonwebtoken"
+import jwt, { SignOptions } from "jsonwebtoken"
 import { User } from "../models/User"
 import { createError } from "../middleware/errorHandler"
 
@@ -40,7 +40,7 @@ router.post("/register", async (req, res, next) => {
       throw createError("JWT secret not configured", 500)
     }
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, jwtSecret, {
+    const token = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     })
 
@@ -82,7 +82,7 @@ router.post("/login", async (req, res, next) => {
       throw createError("JWT secret not configured", 500)
     }
 
-    const token = jwt.sign({ userId: user._id, username: user.username }, jwtSecret, {
+    const token = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     })
 
@@ -120,7 +120,7 @@ router.post("/refresh", async (req, res, next) => {
     }
 
     // Generate new token
-    const newToken = jwt.sign({ userId: user._id, username: user.username }, jwtSecret, {
+    const newToken = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     })
 

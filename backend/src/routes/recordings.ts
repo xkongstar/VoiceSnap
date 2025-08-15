@@ -105,7 +105,7 @@ router.post("/", authenticateToken, upload.single("audio"), async (req: AuthRequ
     // Upload to Vercel Blob
     let audioUrl: string | undefined
     try {
-      const blob = await put(fullFileName, audioFile.buffer, {
+      const blob = await put(fullFileName, audioFile.buffer as any, {
         access: "public",
         token: process.env.BLOB_READ_WRITE_TOKEN,
       })
@@ -184,7 +184,7 @@ router.put("/:id", authenticateToken, upload.single("audio"), async (req: AuthRe
 
       // Upload new file to Vercel Blob
       try {
-        const blob = await put(fullFileName, audioFile.buffer, {
+        const blob = await put(fullFileName, audioFile.buffer as any, {
           access: "public",
           token: process.env.BLOB_READ_WRITE_TOKEN,
         })

@@ -12,7 +12,7 @@ export function generateToken(payload: TokenPayload): string {
     throw createError("JWT secret not configured", 500)
   }
 
-  return jwt.sign(payload, jwtSecret, {
+  return (jwt as any).sign(payload, jwtSecret, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   })
 }
@@ -24,7 +24,7 @@ export function verifyToken(token: string): TokenPayload {
   }
 
   try {
-    return jwt.verify(token, jwtSecret) as TokenPayload
+    return (jwt as any).verify(token, jwtSecret) as TokenPayload
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       throw createError("Invalid token", 401)
