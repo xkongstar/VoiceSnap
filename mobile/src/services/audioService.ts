@@ -1,11 +1,6 @@
-import AudioRecorderPlayer, {
-  AVEncoderAudioQualityIOSType,
-  AVEncodingOption,
-  AudioEncoderAndroidType,
-  AudioSourceAndroidType,
-} from "react-native-audio-recorder-player"
-import RNFS from "react-native-fs"
-import { PermissionsAndroid, Platform } from "react-native"
+import { Audio } from "expo-av"
+import * as FileSystem from "expo-file-system"
+import { fileService } from "./fileService"
 
 export interface RecordingResult {
   uri: string
@@ -13,140 +8,134 @@ export interface RecordingResult {
   size: number
 }
 
+export interface PlaybackStatus {
+  isLoaded: boolean
+  isPlaying: boolean
+  durationMillis?: number
+  positionMillis?: number
+}
+
 class AudioService {
-  private audioRecorderPlayer: AudioRecorderPlayer
-  private recordingPath = ""
+  private recording: Audio.Recording | null = null
+  private sound: Audio.Sound | null = null
   private isRecording = false
   private isPlaying = false
 
   constructor() {
-    this.audioRecorderPlayer = new AudioRecorderPlayer()
-    this.audioRecorderPlayer.setSubscriptionDuration(0.1) // Update every 100ms
+    this.configureAudioSession()
+  }
+
+  private async configureAudioSession() {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        interruptionModeIOS: 1, // Do not mix
+        interruptionModeAndroid: 1, // Do not mix
+        shouldDuckAndroid: false,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: true,
+      })
+    } catch (error) {
+      console.error("[v1] Failed to set audio mode", error)
+    }
   }
 
   // Request microphone permission
   async requestPermissions(): Promise<boolean> {
-    if (Platform.OS === "android") {
-      try {
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
-          title: "录音权限",
-          message: "应用需要录音权限来录制您的方言",
-          buttonNeutral: "稍后询问",
-          buttonNegative: "拒绝",
-          buttonPositive: "允许",
-        })
-        return granted === PermissionsAndroid.RESULTS.GRANTED
-      } catch (err) {
-        console.warn("Permission request error:", err)
-        return false
-      }
+    const { status } = await Audio.requestPermissionsAsync()
+    if (status !== "granted") {
+      alert("抱歉，我们需要录音权限才能继续！")
+      return false
     }
-    return true // iOS permissions are handled automatically
-  }
-
-  // Generate unique recording path
-  private generateRecordingPath(): string {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-    const fileName = `recording_${timestamp}.wav`
-    return `${RNFS.CachesDirectoryPath}/${fileName}`
+    return true
   }
 
   // Start recording
   async startRecording(
-    onProgress?: (data: { currentMetering?: number; currentPosition: number }) => void,
+    onProgress?: (status: { durationMillis: number; metering?: number }) => void,
   ): Promise<string> {
     try {
-      // Check permissions
       const hasPermission = await this.requestPermissions()
       if (!hasPermission) {
         throw new Error("录音权限被拒绝")
       }
 
-      // Generate recording path
-      this.recordingPath = this.generateRecordingPath()
+      this.recording = new Audio.Recording()
 
-      // Audio settings for high quality recording
-      const audioSet = {
-        AudioEncoderAndroid: AudioEncoderAndroidType.AAC,
-        AudioSourceAndroid: AudioSourceAndroidType.MIC,
-        AVEncoderAudioQualityKeyIOS: AVEncoderAudioQualityIOSType.high,
-        AVNumberOfChannelsKeyIOS: 1,
-        AVFormatIDKeyIOS: AVEncodingOption.aac,
-        AudioSamplingRate: 44100,
-        AudioChannels: 1,
-        AudioEncodingBitRate: 128000,
-      }
-
-      // Start recording
-      const uri = await this.audioRecorderPlayer.startRecorder(this.recordingPath, audioSet)
-      this.isRecording = true
-
-      // Set up progress listener
       if (onProgress) {
-        this.audioRecorderPlayer.addRecordBackListener(onProgress)
+        this.recording.setOnRecordingStatusUpdate(status => {
+          if (status.isRecording) {
+            onProgress({
+              durationMillis: status.durationMillis,
+              metering: status.metering,
+            })
+          }
+        })
       }
 
-      console.log("[v0] Recording started:", uri)
-      return uri
+      await this.recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY)
+      await this.recording.startAsync()
+
+      this.isRecording = true
+      const uri = this.recording.getURI()
+      console.log("[v1] Recording started:", uri)
+      return uri || ""
     } catch (error) {
-      console.error("[v0] Start recording error:", error)
+      console.error("[v1] Start recording error:", error)
       throw error
     }
   }
 
   // Stop recording
-  async stopRecording(): Promise<RecordingResult> {
+  async stopRecording(): Promise<RecordingResult | null> {
+    if (!this.recording) {
+      throw new Error("没有正在进行的录音")
+    }
+
     try {
-      if (!this.isRecording) {
-        throw new Error("没有正在进行的录音")
+      const status = await this.recording.stopAndUnloadAsync()
+      this.isRecording = false
+      const uri = this.recording.getURI()
+
+      if (!uri) {
+        throw new Error("无法获取录音文件 URI")
       }
 
-      const result = await this.audioRecorderPlayer.stopRecorder()
-      this.isRecording = false
+      const fileInfo = await fileService.getFileInfo(uri)
+      console.log("[v1] Recording stopped:", uri)
 
-      // Remove progress listener
-      this.audioRecorderPlayer.removeRecordBackListener()
-
-      // Get file info
-      const fileInfo = await RNFS.stat(this.recordingPath)
-
-      console.log("[v0] Recording stopped:", result)
+      this.recording = null
 
       return {
-        uri: this.recordingPath,
-        duration: this.parseDurationFromResult(result),
-        size: fileInfo.size,
+        uri,
+        duration: status.durationMillis,
+        size: fileInfo?.size || 0,
       }
     } catch (error) {
-      console.error("[v0] Stop recording error:", error)
+      console.error("[v1] Stop recording error:", error)
       throw error
     }
-  }
-
-  // Parse duration from recording result
-  private parseDurationFromResult(result: string): number {
-    // The result format is usually like "file:///path/to/file.wav"
-    // Duration is tracked separately, so we'll return 0 and track it in the component
-    return 0
   }
 
   // Start playing audio
   async startPlayer(
     uri: string,
-    onProgress?: (data: { currentPosition: number; duration: number }) => void,
+    onProgress?: (status: PlaybackStatus) => void,
   ): Promise<void> {
     try {
-      const msg = await this.audioRecorderPlayer.startPlayer(uri)
-      this.isPlaying = true
-
-      // Set up progress listener
-      if (onProgress) {
-        this.audioRecorderPlayer.addPlayBackListener(onProgress)
+      if (this.sound) {
+        await this.sound.unloadAsync()
+        this.sound = null
       }
 
-      console.log("[v0] Playback started:", msg)
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true }, onProgress)
+      this.sound = sound
+      this.isPlaying = true
+
+      console.log("[v1] Playback started")
     } catch (error) {
-      console.error("[v0] Start player error:", error)
+      console.error("[v1] Start player error:", error)
       throw error
     }
   }
@@ -154,12 +143,15 @@ class AudioService {
   // Stop playing audio
   async stopPlayer(): Promise<void> {
     try {
-      await this.audioRecorderPlayer.stopPlayer()
+      if (this.sound) {
+        await this.sound.stopAsync()
+        await this.sound.unloadAsync()
+        this.sound = null
+      }
       this.isPlaying = false
-      this.audioRecorderPlayer.removePlayBackListener()
-      console.log("[v0] Playback stopped")
+      console.log("[v1] Playback stopped")
     } catch (error) {
-      console.error("[v0] Stop player error:", error)
+      console.error("[v1] Stop player error:", error)
       throw error
     }
   }
@@ -167,10 +159,13 @@ class AudioService {
   // Pause playing audio
   async pausePlayer(): Promise<void> {
     try {
-      await this.audioRecorderPlayer.pausePlayer()
-      console.log("[v0] Playback paused")
+      if (this.sound) {
+        await this.sound.pauseAsync()
+        this.isPlaying = false
+        console.log("[v1] Playback paused")
+      }
     } catch (error) {
-      console.error("[v0] Pause player error:", error)
+      console.error("[v1] Pause player error:", error)
       throw error
     }
   }
@@ -178,10 +173,13 @@ class AudioService {
   // Resume playing audio
   async resumePlayer(): Promise<void> {
     try {
-      await this.audioRecorderPlayer.resumePlayer()
-      console.log("[v0] Playback resumed")
+      if (this.sound) {
+        await this.sound.playAsync()
+        this.isPlaying = true
+        console.log("[v1] Playback resumed")
+      }
     } catch (error) {
-      console.error("[v0] Resume player error:", error)
+      console.error("[v1] Resume player error:", error)
       throw error
     }
   }
@@ -189,13 +187,10 @@ class AudioService {
   // Delete recording file
   async deleteRecording(uri: string): Promise<void> {
     try {
-      const exists = await RNFS.exists(uri)
-      if (exists) {
-        await RNFS.unlink(uri)
-        console.log("[v0] Recording deleted:", uri)
-      }
+      await FileSystem.deleteAsync(uri, { idempotent: true })
+      console.log("[v1] Recording deleted:", uri)
     } catch (error) {
-      console.error("[v0] Delete recording error:", error)
+      console.error("[v1] Delete recording error:", error)
       throw error
     }
   }
@@ -203,13 +198,18 @@ class AudioService {
   // Get recording duration
   async getRecordingDuration(uri: string): Promise<number> {
     try {
-      // This is a simplified implementation
-      // In a real app, you might want to use a library to get actual audio duration
-      const fileInfo = await RNFS.stat(uri)
-      // Rough estimation: 1 second ≈ 44100 samples * 2 bytes = ~88KB for WAV
-      return Math.round(fileInfo.size / 88000)
+      if (this.sound) {
+        await this.sound.unloadAsync()
+        this.sound = null
+      }
+      const { sound } = await Audio.Sound.createAsync({ uri })
+      const status = await sound.getStatusAsync()
+      await sound.unloadAsync()
+
+      // @ts-ignore
+      return status.durationMillis || 0
     } catch (error) {
-      console.error("[v0] Get duration error:", error)
+      console.error("[v1] Get duration error:", error)
       return 0
     }
   }
@@ -223,17 +223,25 @@ class AudioService {
   }
 
   // Cleanup
-  cleanup(): void {
-    this.audioRecorderPlayer.removeRecordBackListener()
-    this.audioRecorderPlayer.removePlayBackListener()
+  async cleanup(): Promise<void> {
+    if (this.recording) {
+      await this.recording.stopAndUnloadAsync()
+      this.isRecording = false
+      this.recording = null
+    }
+    if (this.sound) {
+      await this.sound.unloadAsync()
+      this.sound = null
+      this.isPlaying = false
+    }
   }
 
   // Getters
-  get recording(): boolean {
+  get recordingStatus(): boolean {
     return this.isRecording
   }
 
-  get playing(): boolean {
+  get playingStatus(): boolean {
     return this.isPlaying
   }
 }
