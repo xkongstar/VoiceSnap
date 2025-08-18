@@ -20,7 +20,7 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: string
-          let iconSize = focused ? size + 2 : size
+          // let iconSize = focused ? size + 2 : size
 
           switch (route.name) {
             case "Tasks":
@@ -43,12 +43,12 @@ function MainTabs() {
             <View style={{
               backgroundColor: focused ? '#4f46e520' : 'transparent',
               borderRadius: 12,
-              padding: focused ? 8 : 4,
+              padding: 4,
               alignItems: 'center',
               justifyContent: 'center',
               minWidth: 48,
             }}>
-              <Icon name={iconName} size={iconSize} color={color} />
+              <Icon name={iconName} size={size} color={color} />
             </View>
           )
         },
