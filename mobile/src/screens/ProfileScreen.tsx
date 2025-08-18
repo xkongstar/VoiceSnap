@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native"
 import Icon from "react-native-vector-icons/MaterialIcons"
@@ -26,6 +24,10 @@ export default function ProfileScreen() {
       setStatistics(response.stats)
     } catch (error: any) {
       console.error("[v0] Load statistics error:", error)
+      // Don't show alert for 401 errors as they're handled by interceptor
+      if (error.response?.status !== 401) {
+        Alert.alert("错误", "加载统计信息失败")
+      }
     } finally {
       setIsLoading(false)
     }

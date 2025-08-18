@@ -1,8 +1,9 @@
 import axios, { type AxiosInstance } from "axios"
 import { useAppStore } from "../store/appStore"
-import { __DEV__ } from "react-native" // Declare the __DEV__ variable
 
-const API_BASE_URL = __DEV__ ? "http://localhost:3000/api" : "https://your-production-api.fly.dev/api"
+// __DEV__ is a global variable in React Native
+
+const API_BASE_URL = __DEV__ ? "https://gsfjlp-uzgwep-3000.app.cloudstudio.work/api" : "https://your-production-api.fly.dev/api"
 
 class ApiService {
   private api: AxiosInstance
@@ -33,8 +34,12 @@ class ApiService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          useAppStore.getState().logout()
+          // Only logout if not on login/register endpoints
+          const isAuthEndpoint = error.config?.url?.includes('/auth/')
+          if (!isAuthEndpoint) {
+            // Token expired or invalid
+            useAppStore.getState().logout()
+          }
         }
         return Promise.reject(error)
       },
