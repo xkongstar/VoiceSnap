@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { MaterialIcons as Icon } from "@expo/vector-icons"
 import { useAppStore } from "../store/appStore"
 import { apiService } from "../services/apiService"
 import { fileService } from "../services/fileService"
 import { networkService } from "../services/networkService"
+import { styles } from "../styles/ProfileScreenStyles"
 
 export default function ProfileScreen() {
   const { user, logout, setIsLoading, isLoading, offlineRecordings, isOnline } = useAppStore()
@@ -112,43 +113,63 @@ export default function ProfileScreen() {
     ])
   }
 
-  const StatCard = ({ title, value, icon, color = "#2196F3" }: any) => (
+  const StatCard = ({ title, value, icon, color = "#4f46e5", bgColor = "#f1f5f9" }: any) => (
     <View style={styles.statCard}>
-      <View style={[styles.statIcon, { backgroundColor: color + "20" }]}>
-        <Icon name={icon} size={24} color={color} />
+      <View style={[styles.statIcon, { backgroundColor: bgColor }]}>
+        <Icon name={icon} size={28} color={color} />
       </View>
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statTitle}>{title}</Text>
       </View>
+      <View style={styles.statDecoration} />
     </View>
   )
 
   return (
     <ScrollView style={styles.container}>
+      {/* 头部渐变背景 */}
+      <View style={styles.headerBackground} />
+      
+      {/* 用户信息区域 */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={32} color="#2196F3" />
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Icon name="person" size={36} color="#4f46e5" />
+            </View>
+            <View style={styles.onlineIndicator}>
+              <Icon name={isOnline ? "wifi" : "wifi-off"} size={12} color={isOnline ? "#10b981" : "#f59e0b"} />
+            </View>
           </View>
           <View style={styles.userDetails}>
             <Text style={styles.username}>{user?.username}</Text>
             <Text style={styles.userEmail}>{user?.email || "未设置邮箱"}</Text>
+            <View style={styles.userBadge}>
+              <Icon name="star" size={14} color="#fbbf24" />
+              <Text style={styles.userLevel}>方言记录者</Text>
+            </View>
           </View>
         </View>
       </View>
 
+      {/* 离线同步提示 */}
       {offlineRecordings.length > 0 && (
         <View style={styles.syncSection}>
-          <View style={styles.syncHeader}>
-            <Icon name="sync" size={24} color="#FF9800" />
-            <Text style={styles.syncTitle}>离线录音</Text>
+          <View style={styles.syncAlert}>
+            <View style={styles.syncIcon}>
+              <Icon name="sync" size={24} color="#f59e0b" />
+            </View>
+            <View style={styles.syncContent}>
+              <Text style={styles.syncTitle}>离线录音</Text>
+              <Text style={styles.syncDescription}>有 {offlineRecordings.length} 个录音等待上传</Text>
+            </View>
           </View>
-          <Text style={styles.syncDescription}>有 {offlineRecordings.length} 个录音等待上传</Text>
           <TouchableOpacity
             style={[styles.syncButton, (!isOnline || isSyncing) && styles.syncButtonDisabled]}
             onPress={handleManualSync}
             disabled={!isOnline || isSyncing}
+            activeOpacity={0.8}
           >
             <Icon name={isSyncing ? "hourglass-empty" : "cloud-upload"} size={20} color="white" />
             <Text style={styles.syncButtonText}>{isSyncing ? "同步中..." : isOnline ? "立即同步" : "网络未连接"}</Text>
@@ -156,241 +177,100 @@ export default function ProfileScreen() {
         </View>
       )}
 
+      {/* 统计数据 */}
       {statistics && (
         <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>录音统计</Text>
+          <View style={styles.sectionHeader}>
+            <Icon name="bar-chart" size={20} color="#6366f1" />
+            <Text style={styles.sectionTitle}>录音统计</Text>
+          </View>
           <View style={styles.statsGrid}>
-            <StatCard title="总录音数" value={statistics.total_recordings} icon="mic" color="#4CAF50" />
+            <StatCard 
+              title="总录音数" 
+              value={statistics.total_recordings} 
+              icon="mic" 
+              color="#10b981" 
+              bgColor="#f0fdf4"
+            />
             <StatCard
               title="总时长"
               value={`${Math.round(statistics.total_duration / 60)}分钟`}
               icon="schedule"
-              color="#FF9800"
+              color="#f59e0b"
+              bgColor="#fffbeb"
             />
-            <StatCard title="完成率" value={`${statistics.completion_rate}%`} icon="trending-up" color="#9C27B0" />
-            <StatCard title="活跃天数" value={`${statistics.days_active}天`} icon="calendar-today" color="#00BCD4" />
+            <StatCard 
+              title="完成率" 
+              value={`${statistics.completion_rate}%`} 
+              icon="trending-up" 
+              color="#8b5cf6"
+              bgColor="#faf5ff"
+            />
+            <StatCard 
+              title="活跃天数" 
+              value={`${statistics.days_active}天`} 
+              icon="calendar-today" 
+              color="#06b6d4"
+              bgColor="#ecfeff"
+            />
           </View>
         </View>
       )}
 
+      {/* 本地文件信息 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>本地文件</Text>
-        <View style={styles.fileInfo}>
-          <Text style={styles.fileCount}>本地录音文件：{localFiles.length} 个</Text>
-          <Text style={styles.fileSize}>
-            总大小：{fileService.formatFileSize(localFiles.reduce((sum, file) => sum + file.size, 0))}
-          </Text>
+        <View style={styles.sectionHeader}>
+          <Icon name="folder" size={20} color="#64748b" />
+          <Text style={styles.sectionTitle}>本地存储</Text>
+        </View>
+        <View style={styles.fileInfoCard}>
+          <View style={styles.fileInfoItem}>
+            <Icon name="audiotrack" size={20} color="#06b6d4" />
+            <Text style={styles.fileCount}>录音文件：{localFiles.length} 个</Text>
+          </View>
+          <View style={styles.fileInfoItem}>
+            <Icon name="storage" size={20} color="#8b5cf6" />
+            <Text style={styles.fileSize}>
+              存储空间：{fileService.formatFileSize(localFiles.reduce((sum, file) => sum + file.size, 0))}
+            </Text>
+          </View>
         </View>
       </View>
 
+      {/* 设置选项 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>设置</Text>
+        <View style={styles.sectionHeader}>
+          <Icon name="settings" size={20} color="#64748b" />
+          <Text style={styles.sectionTitle}>设置</Text>
+        </View>
+        <View style={styles.settingsContainer}>
+          <TouchableOpacity style={styles.settingItem} onPress={handleCleanupFiles}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Icon name="cleaning-services" size={20} color="#ef4444" />
+              </View>
+              <Text style={styles.settingText}>清理临时文件</Text>
+            </View>
+            <Icon name="keyboard-arrow-right" size={20} color="#cbd5e1" />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} onPress={handleCleanupFiles}>
-          <Icon name="cleaning-services" size={24} color="#666" />
-          <Text style={styles.settingText}>清理临时文件</Text>
-          <Icon name="keyboard-arrow-right" size={24} color="#ccc" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingItem} onPress={loadUserStatistics}>
-          <Icon name="refresh" size={24} color="#666" />
-          <Text style={styles.settingText}>刷新统计数据</Text>
-          <Icon name="keyboard-arrow-right" size={24} color="#ccc" />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.settingItem} onPress={loadUserStatistics}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Icon name="refresh" size={20} color="#06b6d4" />
+              </View>
+              <Text style={styles.settingText}>刷新统计数据</Text>
+            </View>
+            <Icon name="keyboard-arrow-right" size={20} color="#cbd5e1" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Icon name="logout" size={24} color="#f44336" />
+      {/* 退出登录 */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+        <Icon name="logout" size={24} color="#ef4444" />
         <Text style={styles.logoutText}>退出登录</Text>
       </TouchableOpacity>
     </ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    backgroundColor: "white",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#e3f2fd",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: "#666",
-  },
-  syncSection: {
-    backgroundColor: "#fff3e0",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#FF9800",
-  },
-  syncHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    gap: 8,
-  },
-  syncTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FF9800",
-  },
-  syncDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 16,
-  },
-  syncButton: {
-    backgroundColor: "#FF9800",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  syncButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  syncButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statsSection: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 16,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: "45%",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    padding: 12,
-    borderRadius: 8,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  statContent: {
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  statTitle: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 2,
-  },
-  section: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fileInfo: {
-    gap: 8,
-  },
-  fileCount: {
-    fontSize: 16,
-    color: "#333",
-  },
-  fileSize: {
-    fontSize: 14,
-    color: "#666",
-  },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  settingText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#333",
-    marginLeft: 12,
-  },
-  logoutButton: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#f44336",
-  },
-})

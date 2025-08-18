@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, TextInput } from "react-native"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { View, Text, TouchableOpacity, Alert, TextInput } from "react-native"
+import Icon from 'react-native-vector-icons/MaterialIcons'
 import { useAppStore } from "../store/appStore"
 import { audioService } from "../services/audioService"
 import { uploadService } from "../services/uploadService"
+import { styles } from "../styles/RecordingScreenStyles"
 
 export default function RecordingScreen() {
   const { currentTask, isRecording, setIsRecording, currentRecording, setCurrentRecording, isOnline } = useAppStore()
@@ -19,7 +20,7 @@ export default function RecordingScreen() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
-  const recordingTimer = useRef<NodeJS.Timeout | null>(null)
+  const recordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     // Cleanup on unmount
@@ -49,7 +50,7 @@ export default function RecordingScreen() {
 
       // Start recording with progress callback
       const uri = await audioService.startRecording((data) => {
-        setRecordingDuration(data.currentPosition)
+        setRecordingDuration(data.durationMillis || 0)
       })
 
       setIsRecording(true)
@@ -66,12 +67,15 @@ export default function RecordingScreen() {
     try {
       const result = await audioService.stopRecording()
       setIsRecording(false)
-      setCurrentRecording(result.uri)
-      setRecordingUri(result.uri)
+      
+      if (result) {
+        setCurrentRecording(result.uri)
+        setRecordingUri(result.uri)
 
-      // Get actual duration if not tracked by progress
-      if (result.duration > 0) {
-        setRecordingDuration(result.duration * 1000) // Convert to milliseconds
+        // Get actual duration if not tracked by progress
+        if (result.duration > 0) {
+          setRecordingDuration(result.duration) // Duration is already in milliseconds
+        }
       }
 
       console.log("[v0] Recording stopped:", result)
@@ -91,8 +95,8 @@ export default function RecordingScreen() {
         setIsPlaying(false)
       } else {
         await audioService.startPlayer(recordingUri, (data) => {
-          setPlaybackPosition(data.currentPosition)
-          setPlaybackDuration(data.duration)
+          setPlaybackPosition(data.positionMillis || 0)
+          setPlaybackDuration(data.durationMillis || 0)
         })
         setIsPlaying(true)
       }
@@ -258,25 +262,47 @@ export default function RecordingScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      {/* 网络状态指示器 */}
       <View style={[styles.networkStatus, isOnline ? styles.networkOnline : styles.networkOffline]}>
         <Icon name={isOnline ? "wifi" : "wifi-off"} size={16} color="white" />
         <Text style={styles.networkStatusText}>{isOnline ? "在线" : "离线模式"}</Text>
       </View>
 
+      {/* 任务卡片 */}
       <View style={styles.taskCard}>
-        <Text style={styles.taskId}>任务 {currentTask.text_id}</Text>
+        <View style={styles.taskHeader}>
+          <View style={styles.taskBadge}>
+            <Icon name="assignment" size={16} color="#4f46e5" />
+            <Text style={styles.taskId}>任务 {currentTask.text_id}</Text>
+          </View>
+        </View>
         <Text style={styles.taskText}>{currentTask.text_content}</Text>
       </View>
 
+      {/* 录音控制区域 */}
       <View style={styles.recordingSection}>
+        <Text style={styles.sectionTitle}>
+          <Icon name="mic" size={20} color="#4f46e5" /> 录音控制
+        </Text>
+        
         <View style={styles.recordingControls}>
+          {/* 录音按钮 */}
           <TouchableOpacity
             style={[styles.recordButton, isRecording && styles.recordButtonActive]}
             onPress={isRecording ? handleStopRecording : handleStartRecording}
             disabled={isPlaying || isUploading}
+            activeOpacity={0.8}
           >
-            <Icon name={isRecording ? "stop" : "mic"} size={32} color="white" />
+            <View style={styles.recordButtonInner}>
+              <Icon name={isRecording ? "stop" : "mic"} size={36} color="white" />
+            </View>
+            {isRecording && (
+              <>
+                <View style={styles.pulseRing1} />
+                <View style={styles.pulseRing2} />
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.recordingTime}>{formatTime(recordingDuration)}</Text>
@@ -289,30 +315,35 @@ export default function RecordingScreen() {
           )}
         </View>
 
+        {/* 回放控制 */}
         {recordingUri && (
           <View style={styles.playbackSection}>
-            <Text style={styles.sectionTitle}>录音回放</Text>
+            <View style={styles.playbackHeader}>
+              <Icon name="headset" size={20} color="#10b981" />
+              <Text style={styles.playbackTitle}>录音回放</Text>
+            </View>
+            
             <View style={styles.playbackControls}>
               <TouchableOpacity
-                style={styles.playButton}
+                style={[styles.controlButton, styles.playButton, isPlaying && styles.playButtonActive]}
                 onPress={handlePlayRecording}
                 disabled={isRecording || isUploading}
               >
-                <Icon name={isPlaying ? "pause" : "play-arrow"} size={24} color="#2196F3" />
+                <Icon name={isPlaying ? "pause" : "play-arrow"} size={28} color={isPlaying ? "#fff" : "#10b981"} />
               </TouchableOpacity>
 
               {isPlaying && (
-                <TouchableOpacity style={styles.stopButton} onPress={handleStopPlayback}>
-                  <Icon name="stop" size={24} color="#FF9800" />
+                <TouchableOpacity style={[styles.controlButton, styles.stopButton]} onPress={handleStopPlayback}>
+                  <Icon name="stop" size={24} color="#f59e0b" />
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.deleteButton}
+                style={[styles.controlButton, styles.deleteButton]}
                 onPress={handleDeleteRecording}
                 disabled={isRecording || isPlaying || isUploading}
               >
-                <Icon name="delete" size={24} color="#f44336" />
+                <Icon name="delete" size={24} color="#ef4444" />
               </TouchableOpacity>
             </View>
 
@@ -321,8 +352,10 @@ export default function RecordingScreen() {
                 <Text style={styles.progressText}>
                   {formatTime(playbackPosition)} / {formatTime(playbackDuration)}
                 </Text>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: `${(playbackPosition / playbackDuration) * 100}%` }]} />
+                <View style={styles.waveformContainer}>
+                  <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${(playbackPosition / playbackDuration) * 100}%` }]} />
+                  </View>
                 </View>
               </View>
             )}
@@ -330,24 +363,40 @@ export default function RecordingScreen() {
         )}
       </View>
 
+      {/* 方言转录区域 */}
       <View style={styles.transcriptionSection}>
-        <Text style={styles.sectionTitle}>方言转录</Text>
-        <Text style={styles.transcriptionHint}>请用文字记录您刚才说的方言内容：</Text>
-        <TextInput
-          style={styles.transcriptionInput}
-          value={dialectTranscription}
-          onChangeText={setDialectTranscription}
-          placeholder="请输入您的方言转录..."
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          editable={!isRecording && !isUploading}
-        />
+        {/* <View style={styles.transcriptionHeader}>
+          <Icon name="translate" size={20} color="#8b5cf6" />
+          <Text style={styles.sectionTitle}>方言转录</Text>
+        </View> */}
+        <Text style={styles.transcriptionHint}>
+          请用文字记录您刚才说的方言内容
+        </Text>
+        <View style={styles.transcriptionInputContainer}>
+          <TextInput
+            style={styles.transcriptionInput}
+            value={dialectTranscription}
+            onChangeText={setDialectTranscription}
+            placeholder="请输入您的方言转录..."
+            placeholderTextColor="#94a3b8"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            editable={!isRecording && !isUploading}
+          />
+          <View style={styles.transcriptionCounter}>
+            <Text style={styles.counterText}>{dialectTranscription.length} 字符</Text>
+          </View>
+        </View>
       </View>
 
+      {/* 上传进度 */}
       {isUploading && (
         <View style={styles.uploadSection}>
-          <Text style={styles.sectionTitle}>上传中...</Text>
+          <View style={styles.uploadHeader}>
+            <Icon name="cloud-upload" size={20} color="#06b6d4" />
+            <Text style={styles.uploadTitle}>上传中...</Text>
+          </View>
           <View style={styles.uploadProgress}>
             <View style={styles.uploadProgressBar}>
               <View style={[styles.uploadProgressFill, { width: `${uploadProgress}%` }]} />
@@ -357,267 +406,18 @@ export default function RecordingScreen() {
         </View>
       )}
 
+      {/* 保存按钮 */}
       {recordingUri && dialectTranscription.trim() && (
         <TouchableOpacity
           style={[styles.saveButton, (isRecording || isPlaying || isUploading) && styles.saveButtonDisabled]}
           onPress={handleSaveRecording}
           disabled={isRecording || isPlaying || isUploading}
+          activeOpacity={0.8}
         >
           <Icon name={isOnline ? "cloud-upload" : "save"} size={24} color="white" />
           <Text style={styles.saveButtonText}>{isOnline ? "保存并上传" : "保存到本地"}</Text>
         </TouchableOpacity>
       )}
-    </ScrollView>
+    </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  networkStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  networkOnline: {
-    backgroundColor: "#4CAF50",
-  },
-  networkOffline: {
-    backgroundColor: "#FF9800",
-  },
-  networkStatusText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#666",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    paddingHorizontal: 40,
-  },
-  taskCard: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  taskId: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#2196F3",
-    marginBottom: 8,
-  },
-  taskText: {
-    fontSize: 18,
-    color: "#333",
-    lineHeight: 26,
-  },
-  recordingSection: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  recordingControls: {
-    alignItems: "center",
-  },
-  recordButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#2196F3",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  recordButtonActive: {
-    backgroundColor: "#f44336",
-  },
-  recordingTime: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  recordingIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#f44336",
-    marginRight: 8,
-  },
-  recordingText: {
-    fontSize: 14,
-    color: "#f44336",
-    fontWeight: "500",
-  },
-  playbackSection: {
-    marginTop: 20,
-    width: "100%",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 12,
-  },
-  playbackControls: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 20,
-  },
-  playButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#e3f2fd",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stopButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#fff3e0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  deleteButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#ffebee",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  progressContainer: {
-    marginTop: 16,
-    alignItems: "center",
-  },
-  progressText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  progressBar: {
-    width: "100%",
-    height: 4,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#2196F3",
-  },
-  transcriptionSection: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  transcriptionHint: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 12,
-  },
-  transcriptionInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 100,
-    backgroundColor: "#f9f9f9",
-  },
-  uploadSection: {
-    backgroundColor: "white",
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  uploadProgress: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  uploadProgressBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  uploadProgressFill: {
-    height: "100%",
-    backgroundColor: "#4CAF50",
-  },
-  uploadProgressText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4CAF50",
-    minWidth: 40,
-  },
-  saveButton: {
-    backgroundColor: "#4CAF50",
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  saveButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-})

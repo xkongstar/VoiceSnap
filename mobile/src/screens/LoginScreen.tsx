@@ -4,14 +4,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from "react-native"
+import { MaterialIcons as Icon } from "@expo/vector-icons"
 import { useAppStore } from "../store/appStore"
 import { apiService } from "../services/apiService"
+import { styles } from "../styles/LoginScreenStyles"
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("")
@@ -55,143 +56,104 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>方言录制助手</Text>
-          <Text style={styles.subtitle}>{isRegister ? "创建新账户" : "登录您的账户"}</Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>用户名</Text>
-            <TextInput
-              style={styles.input}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="请输入用户名"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          {isRegister && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>邮箱 (可选)</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="请输入邮箱地址"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+    <View style={styles.container}>
+      {/* 渐变背景效果 */}
+      <View style={styles.gradientBackground} />
+      
+      {/* 装饰性圆圈 */}
+      <View style={styles.circle1} />
+      <View style={styles.circle2} />
+      <View style={styles.circle3} />
+      
+      <KeyboardAvoidingView style={styles.keyboardContainer} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* 应用图标和标题 */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoContainer}>
+              <Icon name="record-voice-over" size={60} color="#fff" />
             </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>密码</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="请输入密码 (至少6位)"
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            <Text style={styles.title}>方言录制助手</Text>
+            <Text style={styles.subtitle}>{isRegister ? "创建新账户" : "欢迎回来"}</Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={isLoading}
-          >
-            <Text style={styles.buttonText}>{isLoading ? "处理中..." : isRegister ? "注册" : "登录"}</Text>
-          </TouchableOpacity>
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <Icon name="person" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={username}
+                  onChangeText={setUsername}
+                  placeholder="请输入用户名"
+                  placeholderTextColor="#999"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
 
-          <TouchableOpacity style={styles.switchButton} onPress={() => setIsRegister(!isRegister)}>
-            <Text style={styles.switchButtonText}>{isRegister ? "已有账户？点击登录" : "没有账户？点击注册"}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {isRegister && (
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Icon name="email" size={20} color="#666" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="请输入邮箱地址 (可选)"
+                    placeholderTextColor="#999"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <Icon name="lock" size={20} color="#666" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="请输入密码 (至少6位)"
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Icon name="hourglass-empty" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>处理中...</Text>
+                </>
+              ) : (
+                <>
+                  <Icon name={isRegister ? "person-add" : "login"} size={20} color="#fff" />
+                  <Text style={styles.buttonText}>{isRegister ? "注册" : "登录"}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.switchButton} onPress={() => setIsRegister(!isRegister)}>
+              <Text style={styles.switchButtonText}>
+                {isRegister ? "已有账户？点击登录" : "没有账户？点击注册"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  formContainer: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 30,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#2196F3",
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 30,
-    color: "#666",
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 8,
-    color: "#333",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#f9f9f9",
-  },
-  button: {
-    backgroundColor: "#2196F3",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  switchButton: {
-    marginTop: 20,
-    alignItems: "center",
-  },
-  switchButtonText: {
-    color: "#2196F3",
-    fontSize: 16,
-  },
-})
+

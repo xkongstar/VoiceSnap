@@ -42,6 +42,11 @@ export interface OfflineRecording {
   created_at: string
 }
 
+export interface CompletedTaskItem {
+  task: Task
+  recording: Recording
+}
+
 interface AppState {
   // Authentication
   user: User | null
@@ -51,7 +56,7 @@ interface AppState {
   // Tasks
   tasks: Task[]
   pendingTasks: Task[]
-  completedTasks: Task[]
+  completedTasks: CompletedTaskItem[]
   currentTask: Task | null
 
   // Recordings
@@ -72,7 +77,7 @@ interface AppState {
   setToken: (token: string | null) => void
   setTasks: (tasks: Task[]) => void
   setPendingTasks: (tasks: Task[]) => void
-  setCompletedTasks: (tasks: Task[]) => void
+  setCompletedTasks: (tasks: CompletedTaskItem[]) => void
   setCurrentTask: (task: Task | null) => void
   setRecordings: (recordings: Recording[]) => void
   setIsRecording: (isRecording: boolean) => void

@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from "react-native"
-import Icon from "react-native-vector-icons/MaterialIcons"
-import { useAppStore } from "../store/appStore"
+import { View, Text, FlatList, TouchableOpacity, RefreshControl, Alert } from "react-native"
+import { MaterialIcons as Icon } from "@expo/vector-icons"
+import { useAppStore, type CompletedTaskItem } from "../store/appStore"
 import { apiService } from "../services/apiService"
 import { audioService } from "../services/audioService"
+import { styles } from "../styles/CompletedTasksScreenStyles"
 
 export default function CompletedTasksScreen() {
   const { completedTasks, setCompletedTasks, isLoading, setIsLoading, setError } = useAppStore()
@@ -64,7 +65,7 @@ export default function CompletedTasksScreen() {
     }
   }
 
-  const handleDeleteRecording = async (taskItem: any) => {
+  const handleDeleteRecording = async (taskItem: CompletedTaskItem) => {
     Alert.alert("删除录音", "确定要删除这个录音吗？此操作无法撤销。", [
       { text: "取消", style: "cancel" },
       {
@@ -84,14 +85,21 @@ export default function CompletedTasksScreen() {
     ])
   }
 
-  const renderTaskItem = ({ item }: { item: any }) => {
+  const renderTaskItem = ({ item }: { item: CompletedTaskItem }) => {
     const isPlaying = playingId === item.recording._id
+    const duration = item.recording.duration_seconds ? Math.round(item.recording.duration_seconds) : 0
 
     return (
       <View style={styles.taskItem}>
         <View style={styles.taskHeader}>
-          <Text style={styles.taskId}>任务 {item.task.text_id}</Text>
-          <Text style={styles.completedDate}>{new Date(item.recording.created_at).toLocaleDateString("zh-CN")}</Text>
+          <View style={styles.taskBadgeCompleted}>
+            <Icon name="check-circle" size={16} color="#10b981" />
+            <Text style={styles.taskId}>任务 {item.task.text_id}</Text>
+          </View>
+          <View style={styles.completedDateBadge}>
+            <Icon name="schedule" size={14} color="#64748b" />
+            <Text style={styles.completedDate}>{new Date(item.recording.created_at).toLocaleDateString("zh-CN")}</Text>
+          </View>
         </View>
 
         <Text style={styles.taskText} numberOfLines={2}>
@@ -99,50 +107,93 @@ export default function CompletedTasksScreen() {
         </Text>
 
         <View style={styles.transcriptionContainer}>
-          <Text style={styles.transcriptionLabel}>方言转录：</Text>
+          <View style={styles.transcriptionHeader}>
+            <Icon name="translate" size={16} color="#8b5cf6" />
+            <Text style={styles.transcriptionLabel}>方言转录</Text>
+          </View>
           <Text style={styles.transcriptionText}>{item.recording.dialect_transcription}</Text>
+        </View>
+
+        <View style={styles.metaInfo}>
+          {duration > 0 && (
+            <View style={styles.durationBadge}>
+              <Icon name="timer" size={14} color="#06b6d4" />
+              <Text style={styles.durationText}>{duration}秒</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.actionButtons}>
           {item.recording.audio_file_url && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.playButton]}
-              onPress={() => handlePlayRecording(item.recording.audio_file_url, item.recording._id)}
+              style={[styles.actionButton, styles.playButton, isPlaying && styles.playButtonActive]}
+              onPress={() => handlePlayRecording(item.recording.audio_file_url!, item.recording._id)}
+              activeOpacity={0.7}
             >
-              <Icon name={isPlaying ? "stop" : "play-arrow"} size={20} color="#2196F3" />
-              <Text style={[styles.actionButtonText, { color: "#2196F3" }]}>{isPlaying ? "停止" : "播放"}</Text>
+              <Icon name={isPlaying ? "pause" : "play-arrow"} size={20} color={isPlaying ? "#fff" : "#10b981"} />
+              <Text style={[styles.actionButtonText, { color: isPlaying ? "#fff" : "#10b981" }]}>
+                {isPlaying ? "暂停" : "播放"}
+              </Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={[styles.actionButton, styles.deleteButton]}
             onPress={() => handleDeleteRecording(item)}
+            activeOpacity={0.7}
           >
-            <Icon name="delete" size={20} color="#f44336" />
-            <Text style={[styles.actionButtonText, { color: "#f44336" }]}>删除</Text>
+            <Icon name="delete" size={20} color="#ef4444" />
+            <Text style={[styles.actionButtonText, { color: "#ef4444" }]}>删除</Text>
           </TouchableOpacity>
         </View>
-
-        {item.recording.duration_seconds && (
-          <Text style={styles.durationText}>时长：{Math.round(item.recording.duration_seconds)}秒</Text>
-        )}
       </View>
     )
   }
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="assignment-turned-in" size={64} color="#ccc" />
+      <View style={styles.emptyIconContainer}>
+        <Icon name="assignment-turned-in" size={80} color="#94a3b8" />
+        <View style={styles.emptyBadge}>
+          <Icon name="mic" size={20} color="#4f46e5" />
+        </View>
+      </View>
       <Text style={styles.emptyStateTitle}>暂无已完成任务</Text>
       <Text style={styles.emptyStateText}>完成录音任务后，它们会出现在这里</Text>
+      <Text style={styles.emptyStateSubtext}>开始您的第一个录音吧！</Text>
     </View>
   )
 
   return (
     <View style={styles.container}>
+      {/* 头部渐变背景 */}
+      <View style={styles.headerBackground} />
+      
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>已完成任务</Text>
-        <Text style={styles.headerSubtitle}>共 {completedTasks.length} 个任务已完成</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.titleSection}>
+            <Text style={styles.headerTitle}>已完成任务</Text>
+            <Text style={styles.headerSubtitle}>您的录音成果展示</Text>
+          </View>
+          <View style={styles.achievementBadge}>
+            <Icon name="emoji-events" size={20} color="#fbbf24" />
+            <Text style={styles.achievementText}>{completedTasks.length}</Text>
+          </View>
+        </View>
+        {completedTasks.length > 0 && (
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Icon name="mic" size={16} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.statText}>{completedTasks.length} 个录音</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Icon name="timer" size={16} color="rgba(255, 255, 255, 0.8)" />
+              <Text style={styles.statText}>
+                {Math.round(completedTasks.reduce((sum, item) => sum + (item.recording?.duration_seconds || 0), 0) / 60)} 分钟
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       <FlatList
@@ -150,132 +201,19 @@ export default function CompletedTasksScreen() {
         renderItem={renderTaskItem}
         keyExtractor={(item) => item.recording._id}
         contentContainerStyle={styles.listContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={['#10b981']}
+            tintColor="#10b981"
+          />
+        }
         ListEmptyComponent={!isLoading ? renderEmptyState : null}
         showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    backgroundColor: "white",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  listContainer: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  taskItem: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  taskHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  taskId: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#4CAF50",
-  },
-  completedDate: {
-    fontSize: 12,
-    color: "#999",
-  },
-  taskText: {
-    fontSize: 16,
-    color: "#333",
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  transcriptionContainer: {
-    backgroundColor: "#f9f9f9",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  transcriptionLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-  },
-  transcriptionText: {
-    fontSize: 14,
-    color: "#333",
-    fontStyle: "italic",
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 8,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    gap: 4,
-  },
-  playButton: {
-    backgroundColor: "#e3f2fd",
-  },
-  deleteButton: {
-    backgroundColor: "#ffebee",
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  durationText: {
-    fontSize: 12,
-    color: "#999",
-    textAlign: "right",
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 100,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#666",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    paddingHorizontal: 40,
-  },
-})
+  

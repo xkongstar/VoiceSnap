@@ -1,0 +1,148 @@
+import { StyleSheet, Dimensions, Platform } from "react-native"
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from "../theme"
+
+const { width, height } = Dimensions.get("window")
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.gray[50],
+  },
+  gradientBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.6,
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+  },
+  circle1: {
+    position: "absolute",
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  circle2: {
+    position: "absolute",
+    top: 100,
+    left: -80,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  circle3: {
+    position: "absolute",
+    top: 200,
+    right: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: spacing.xxl,
+    paddingTop: 80,
+  },
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+    ...shadows.xl,
+  },
+  title: {
+    fontSize: fontSize.huge,
+    fontWeight: fontWeight.extraBold,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+    color: colors.white,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    fontSize: fontSize.lg,
+    textAlign: "center",
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: fontWeight.medium,
+  },
+  formContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: borderRadius.xxl,
+    padding: spacing.xxxl,
+    ...shadows.xl,
+    backdropFilter: "blur(10px)",
+  },
+  inputContainer: {
+    marginBottom: spacing.xl,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.gray[50],
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.border.default,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    ...shadows.sm,
+  },
+  inputIcon: {
+    marginRight: spacing.md,
+  },
+  input: {
+    flex: 1,
+    fontSize: fontSize.md,
+    color: colors.text.primary,
+    paddingVertical: spacing.lg,
+    fontWeight: fontWeight.medium,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+    ...shadows.lg,
+    gap: spacing.sm,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.gray[400],
+    ...shadows.sm,
+  },
+  buttonText: {
+    color: colors.white,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+  },
+  switchButton: {
+    marginTop: spacing.xxl,
+    alignItems: "center",
+    padding: spacing.md,
+  },
+  switchButtonText: {
+    color: colors.primary,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semiBold,
+  },
+})

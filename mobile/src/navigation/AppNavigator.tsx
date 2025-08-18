@@ -1,7 +1,8 @@
 import { NavigationContainer } from "@react-navigation/native"
 import { createStackNavigator } from "@react-navigation/stack"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import Icon from "react-native-vector-icons/MaterialIcons"
+import { View } from "react-native"
+import Icon from 'react-native-vector-icons/MaterialIcons'
 
 import { useAppStore } from "../store/appStore"
 import LoginScreen from "../screens/LoginScreen"
@@ -19,10 +20,11 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: string
+          let iconSize = focused ? size + 2 : size
 
           switch (route.name) {
             case "Tasks":
-              iconName = "list"
+              iconName = "assignment"
               break
             case "Recording":
               iconName = "mic"
@@ -37,23 +39,85 @@ function MainTabs() {
               iconName = "help"
           }
 
-          return <Icon name={iconName} size={size} color={color} />
+          return (
+            <View style={{
+              backgroundColor: focused ? '#4f46e520' : 'transparent',
+              borderRadius: 12,
+              padding: focused ? 8 : 4,
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 48,
+            }}>
+              <Icon name={iconName} size={iconSize} color={color} />
+            </View>
+          )
         },
-        tabBarActiveTintColor: "#2196F3",
-        tabBarInactiveTintColor: "gray",
+        tabBarActiveTintColor: "#4f46e5",
+        tabBarInactiveTintColor: "#94a3b8",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: "#1e293b",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          height: 80,
+          paddingBottom: 12,
+          paddingTop: 10,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+          marginTop: 4,
+        },
         headerStyle: {
-          backgroundColor: "#2196F3",
+          backgroundColor: "#4f46e5",
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 0,
         },
         headerTintColor: "#fff",
         headerTitleStyle: {
-          fontWeight: "bold",
+          fontWeight: "800",
+          fontSize: 18,
         },
       })}
     >
-      <Tab.Screen name="Tasks" component={TaskListScreen} options={{ title: "待录制任务" }} />
-      <Tab.Screen name="Recording" component={RecordingScreen} options={{ title: "录音" }} />
-      <Tab.Screen name="Completed" component={CompletedTasksScreen} options={{ title: "已完成" }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: "个人中心" }} />
+      <Tab.Screen 
+        name="Tasks" 
+        component={TaskListScreen} 
+        options={{ 
+          title: "任务列表",
+          headerShown: false,
+        }} 
+      />
+      <Tab.Screen 
+        name="Recording" 
+        component={RecordingScreen} 
+        options={{ 
+          title: "录音",
+          headerShown: false,
+        }} 
+      />
+      <Tab.Screen 
+        name="Completed" 
+        component={CompletedTasksScreen} 
+        options={{ 
+          title: "已完成",
+          headerShown: false,
+        }} 
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{ 
+          title: "我的",
+          headerShown: false,
+        }} 
+      />
     </Tab.Navigator>
   )
 }
