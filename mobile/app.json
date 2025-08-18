@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "方言录制助手",
-    "slug": "DialectCapture",
+    "slug": "dialectcapture",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +24,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "862a7241-53cd-47ed-8da8-f03db159879a"
+      }
+    },
+    "owner": "xkong"
   }
 }
