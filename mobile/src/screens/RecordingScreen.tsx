@@ -293,6 +293,10 @@ export default function RecordingScreen() {
             onPress={isRecording ? handleStopRecording : handleStartRecording}
             disabled={isPlaying || isUploading}
             activeOpacity={0.8}
+            accessible={true}
+            accessibilityLabel={isRecording ? "停止录音" : "开始录音"}
+            accessibilityHint={isRecording ? "点击停止当前录音" : "点击开始录制音频"}
+            accessibilityRole="button"
           >
             <View style={styles.recordButtonInner}>
               <Icon name={isRecording ? "stop" : "mic"} size={36} color="white" />
@@ -383,6 +387,10 @@ export default function RecordingScreen() {
             numberOfLines={4}
             textAlignVertical="top"
             editable={!isRecording && !isUploading}
+            accessible={true}
+            accessibilityLabel="方言转录输入框"
+            accessibilityHint="在此输入您刚才录制的方言内容的文字版本"
+            accessibilityRole="text"
           />
           <View style={styles.transcriptionCounter}>
             <Text style={styles.counterText}>{dialectTranscription.length} 字符</Text>

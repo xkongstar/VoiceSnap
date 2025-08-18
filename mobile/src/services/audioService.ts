@@ -10,10 +10,38 @@ export interface RecordingResult {
 
 export interface PlaybackStatus {
   isLoaded: boolean
-  isPlaying: boolean
+  isPlaying?: boolean
   durationMillis?: number
   positionMillis?: number
 }
+
+// ASR 黄金标准配置 - 16kHz, 16-bit, 单声道
+const ASR_RECORDING_OPTIONS: Audio.RecordingOptions = {
+  isMeteringEnabled: true,
+  android: {
+    extension: '.m4a', // Android 平台限制，使用最高质量的 AAC
+    outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+    audioEncoder: Audio.AndroidAudioEncoder.AAC,
+    sampleRate: 16000, // ✅ 16kHz ASR 黄金标准采样率
+    numberOfChannels: 1, // ✅ 单声道，ASR 推荐
+    bitRate: 320000, // 最高码率，最接近无损质量
+  },
+  ios: {
+    extension: '.wav', // ✅ iOS 支持真正的 WAV 格式
+    outputFormat: Audio.IOSOutputFormat.LINEARPCM, // ✅ 真正的 16-bit PCM
+    audioQuality: Audio.IOSAudioQuality.MAX,
+    sampleRate: 16000, // ✅ 16kHz ASR 标准采样率  
+    numberOfChannels: 1, // ✅ 单声道
+    bitRate: 256000,
+    linearPCMBitDepth: 16, // ✅ 16-bit 深度
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: {
+    mimeType: 'audio/wav',
+    bitsPerSecond: 256000,
+  }
+};
 
 class AudioService {
   private recording: Audio.Recording | null = null
@@ -74,7 +102,7 @@ class AudioService {
         })
       }
 
-      await this.recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY)
+      await this.recording.prepareToRecordAsync(ASR_RECORDING_OPTIONS)
       await this.recording.startAsync()
 
       this.isRecording = true
