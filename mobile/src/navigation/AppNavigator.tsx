@@ -2,7 +2,7 @@ import { NavigationContainer } from "@react-navigation/native"
 import { createStackNavigator } from "@react-navigation/stack"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { View } from "react-native"
-import Icon from 'react-native-vector-icons/MaterialIcons'
+import { MaterialIcons as Icon } from "@expo/vector-icons"
 
 import { useAppStore } from "../store/appStore"
 import LoginScreen from "../screens/LoginScreen"
