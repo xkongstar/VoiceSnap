@@ -176,7 +176,6 @@ async function importDialectTasks() {
 // 运行导入脚本
 if (require.main === module) {
   console.log("🎙️  新化方言录音任务导入脚本")
-  console.log("=" * 50)
   importDialectTasks()
     .then(() => {
       console.log("🎉 导入完成！")
