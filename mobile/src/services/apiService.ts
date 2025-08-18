@@ -3,7 +3,7 @@ import { useAppStore } from "../store/appStore"
 
 // __DEV__ is a global variable in React Native
 
-const API_BASE_URL = __DEV__ ? "https://gsfjlp-uzgwep-3000.app.cloudstudio.work/api" : "https://your-production-api.fly.dev/api"
+const API_BASE_URL = __DEV__ ? "https://gsfjlp-uzgwep-3000.app.cloudstudio.work/api" : "https://gsfjlp-uzgwep-3000.app.cloudstudio.work/api"
 
 class ApiService {
   private api: AxiosInstance
