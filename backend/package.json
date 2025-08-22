@@ -22,7 +22,10 @@
     "multer": "^1.4.5-lts.1",
     "dotenv": "^16.3.1",
     "@vercel/blob": "^0.15.1",
-    "fluent-ffmpeg": "^2.1.2"
+    "fluent-ffmpeg": "^2.1.2",
+    "winston": "^3.11.0",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

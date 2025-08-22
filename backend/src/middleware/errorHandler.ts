@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express"
+import { logError } from "../utils/logger"
 
 export interface AppError extends Error {
   statusCode?: number
@@ -9,13 +10,14 @@ export function errorHandler(error: AppError, req: Request, res: Response, next:
   const statusCode = error.statusCode || 500
   const message = error.message || "Internal Server Error"
 
-  // Log error for debugging
-  console.error(`[${new Date().toISOString()}] Error:`, {
-    message: error.message,
-    stack: error.stack,
+  // 使用Winston记录错误
+  logError(`Request error: ${message}`, error, {
     url: req.url,
     method: req.method,
     statusCode,
+    userId: (req as any).user?.id || 'anonymous',
+    userAgent: req.get('User-Agent'),
+    ip: req.ip
   })
 
   // Send error response

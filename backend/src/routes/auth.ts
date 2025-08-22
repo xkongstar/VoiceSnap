@@ -1,53 +1,29 @@
 import express from "express"
-import jwt, { SignOptions } from "jsonwebtoken"
-import { User } from "../models/User"
+import { authService } from "../services/AuthService"
 import { createError } from "../middleware/errorHandler"
+import { authenticateToken, type AuthRequest } from "../middleware/auth"
+import {
+  validateRegister,
+  validateLogin,
+  validateRefreshToken,
+  handleValidationErrors,
+  authRateLimit
+} from "../middleware/validation"
 
-const router = express.Router()
+const router: express.Router = express.Router()
 
 // Register new user
-router.post("/register", async (req, res, next) => {
+router.post("/register", authRateLimit, validateRegister, handleValidationErrors, async (req, res, next) => {
   try {
     const { username, password, email } = req.body
 
-    // Validation
-    if (!username || !password) {
-      throw createError("Username and password are required", 400)
-    }
-
-    if (password.length < 6) {
-      throw createError("Password must be at least 6 characters long", 400)
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ username })
-    if (existingUser) {
-      throw createError("Username already exists", 409)
-    }
-
-    // Create new user
-    const user = new User({
-      username,
-      password_hash: password, // Will be hashed by pre-save middleware
-      email,
-    })
-
-    await user.save()
-
-    // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET
-    if (!jwtSecret) {
-      throw createError("JWT secret not configured", 500)
-    }
-
-    const token = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    })
+    const { user, tokens } = await authService.register(username, password, email)
 
     res.status(201).json({
-      message: "User registered successfully",
+      message: "用户注册成功",
       user: user.toJSON(),
-      token,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     })
   } catch (error) {
     next(error)
@@ -55,85 +31,53 @@ router.post("/register", async (req, res, next) => {
 })
 
 // Login user
-router.post("/login", async (req, res, next) => {
+router.post("/login", authRateLimit, validateLogin, handleValidationErrors, async (req, res, next) => {
   try {
     const { username, password } = req.body
 
-    // Validation
-    if (!username || !password) {
-      throw createError("Username and password are required", 400)
-    }
-
-    // Find user
-    const user = await User.findOne({ username })
-    if (!user) {
-      throw createError("Invalid username or password", 401)
-    }
-
-    // Check password
-    const isPasswordValid = await user.comparePassword(password)
-    if (!isPasswordValid) {
-      throw createError("Invalid username or password", 401)
-    }
-
-    // Generate JWT token
-    const jwtSecret = process.env.JWT_SECRET
-    if (!jwtSecret) {
-      throw createError("JWT secret not configured", 500)
-    }
-
-    const token = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    })
+    const { user, tokens } = await authService.login(username, password)
 
     res.json({
-      message: "Login successful",
+      message: "登录成功",
       user: user.toJSON(),
-      token,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     })
   } catch (error) {
     next(error)
   }
 })
 
-// Refresh token
-router.post("/refresh", async (req, res, next) => {
+// Refresh access token
+router.post("/refresh", validateRefreshToken, handleValidationErrors, async (req, res, next) => {
   try {
-    const { token } = req.body
+    const { refreshToken } = req.body
 
-    if (!token) {
-      throw createError("Refresh token required", 400)
+    if (!refreshToken) {
+      throw createError("刷新令牌必填", 400)
     }
 
-    const jwtSecret = process.env.JWT_SECRET
-    if (!jwtSecret) {
-      throw createError("JWT secret not configured", 500)
-    }
-
-    // Verify current token
-    const decoded = jwt.verify(token, jwtSecret) as any
-
-    // Find user to ensure they still exist
-    const user = await User.findById(decoded.userId)
-    if (!user) {
-      throw createError("User not found", 404)
-    }
-
-    // Generate new token
-    const newToken = (jwt as any).sign({ userId: user._id, username: user.username }, jwtSecret, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-    })
+    const { accessToken } = await authService.refreshAccessToken(refreshToken)
 
     res.json({
-      message: "Token refreshed successfully",
-      token: newToken,
+      message: "令牌刷新成功",
+      accessToken,
     })
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(createError("Invalid token", 401))
-    } else {
-      next(error)
-    }
+    next(error)
+  }
+})
+
+// Logout (client should remove tokens)
+router.post("/logout", authenticateToken, async (req: AuthRequest, res, next) => {
+  try {
+    // 在实际生产环境中，可以在这里将令牌加入黑名单
+    // 目前由客户端负责删除令牌
+    res.json({
+      message: "退出成功"
+    })
+  } catch (error) {
+    next(error)
   }
 })
 
